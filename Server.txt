@@ -1,0 +1,198 @@
+1.
+//Server.cpp
+#include <iostream>
+#include "Small_Socket.h"
+using namespace std;
+
+int main() {
+    int hostshort;
+    cout << "host:";
+    cin >> hostshort;
+    
+    Small_Socket soc(hostshort);
+    soc.Start();
+    
+    return 0;
+}
+
+
+2.
+//Small_Socket.cpp
+#include <iostream>
+#include <winsock2.h>
+#include <thread>
+#include <stack>
+#include "Small_Socket.h"
+#pragma comment(lib,"ws2_32.lib")
+using namespace std;
+
+Small_Socket::Small_Socket(int host) {
+    hostshort = host;
+}
+
+Small_Socket::~Small_Socket() {
+    socket_close();
+    wsadata_close();
+}
+
+int Small_Socket::working(int No, int Now) {
+    while (1) {
+        char Recv[Buff] = { 0 };
+        char Send[Buff] = { 0 };
+        int rlen = recv(ClientSocket[No], Recv, Buff, 0);
+
+        if (rlen == SOCKET_ERROR) {
+            cout << "用户" << (Now + 1) << "已退出" << endl;
+            Clientflag[No] = false;
+            closesocket(ClientSocket[No]);
+            return -1;
+        }
+        else {
+            cout << "用户" << (Now + 1) << ": " <<  Recv  << endl;
+        }
+        //发送
+        string others = string("用户") + char(Now + 1 + '0') + string(": ") + string(Recv);
+        strcpy_s(Send, others.c_str());
+        
+        for (int j = 0; j < num; j++) {
+            //除自己之外
+            if (Clientflag[j] && j != No) {
+                send(ClientSocket[j], Send, strlen(Send), 0);
+            }
+        }
+    }
+}
+
+void Small_Socket::wsadata_init() {
+    WORD SocketVersion = MAKEWORD(2, 2);
+    WSADATA wsd;
+    if (WSAStartup(SocketVersion, &wsd) != 0)
+    {
+        cout << "绑定Socket库失败" << endl;
+    }
+}
+
+void Small_Socket::wsadata_close() {
+    WSACleanup();
+}
+
+void Small_Socket::socket_socket() {
+    ServerSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+    if (ServerSocket == INVALID_SOCKET)
+    {
+        cout << "创建服务器套接字失败" << endl;
+        WSACleanup();
+    }
+}
+
+void Small_Socket::socket_bind() {
+    SOCKADDR_IN ServerAddr;
+    ServerAddr.sin_family = AF_INET;
+    ServerAddr.sin_port = htons(hostshort);
+    ServerAddr.sin_addr.S_un.S_addr = INADDR_ANY;
+    int RetVal = bind(ServerSocket, (SOCKADDR*)&ServerAddr, sizeof(SOCKADDR_IN));
+
+    if (RetVal == SOCKET_ERROR)
+    {
+        cout << "套接字绑定失败" << endl;
+        closesocket(ServerSocket);
+        WSACleanup();
+    }
+}
+
+void Small_Socket::socket_listen() {
+    int RetVal = listen(ServerSocket, 2);
+    if (RetVal == SOCKET_ERROR)
+    {
+        cout << "套接字监听失败" << endl;
+        closesocket(ServerSocket);
+        WSACleanup();
+    }
+}
+
+void Small_Socket::socket_accept() {
+    int i = 0;
+    while (true) {
+        if (i != MaxNum) {
+            ClientSocket[i] = accept(ServerSocket, (SOCKADDR*)&ClientAddr, &ClientAddrLen);
+            Clientflag[i] = true;
+
+            if (ClientSocket[i] == INVALID_SOCKET)
+            {
+                cout << "接收客户端请求失败" << endl;
+                closesocket(ServerSocket);
+                WSACleanup();
+            }
+            cout << "第" << (num + 1) << "位用户加入" << endl;
+
+            thread go(&Small_Socket::working, this, i, num);
+            num++;
+            go.detach();          
+        }
+        else {
+            cout << "用户已满" << endl;
+        }
+        //判断是否有空余客户端，有的话返回空余客户端的位置i
+        for (i = 0; i < MaxNum; i++) {
+            if (Clientflag[i] != true) {
+                break;
+            }
+        }
+    }
+}
+
+void Small_Socket::socket_close() {
+    closesocket(ServerSocket);
+    for (int i = 0; i < num; i++)
+        closesocket(ClientSocket[i]);
+}
+
+void Small_Socket::Start() {
+    //初始化套接字库
+    wsadata_init();
+
+    socket_socket();
+    socket_bind();
+    socket_listen();
+    cout << "服务器启动，等待连接..." << endl;
+    socket_accept();
+}
+
+
+3.
+//Small_Socket.h
+#pragma once
+#ifndef SMALL_SOCKET
+#define SMALL_SOCKET
+
+#include <winsock2.h>
+
+#define MaxNum 10//最大用户访问数量
+#define Buff 512
+
+class Small_Socket {
+private:
+	SOCKET ServerSocket;
+	SOCKET ClientSocket[MaxNum];
+	SOCKADDR_IN ClientAddr;
+	int hostshort;//主机地址host
+	int num = 0;//用户流量
+	int ClientAddrLen = sizeof(ClientAddr);
+	bool Clientflag[MaxNum] = { false };//判断用户是否在线
+
+public:
+	Small_Socket(int host);
+	~Small_Socket();
+	int working(int No, int Now);
+	void wsadata_init();
+	void wsadata_close();
+	void socket_socket();
+	void socket_bind();
+	void socket_listen();
+	void socket_accept();
+	void socket_close();
+	void Start();
+};
+
+#endif

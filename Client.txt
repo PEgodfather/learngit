@@ -1,0 +1,148 @@
+1.
+//Client.cpp
+#include<iostream>
+#include"Small.h"
+using namespace std;
+
+int main() {
+	char ipaddr[16];
+	int host;
+	
+	cout << "ip:";
+	cin >> ipaddr;
+	cout << "host:";
+	cin >> host;
+	
+	Client cli(ipaddr, host);	
+	cli.Start();
+
+	return 0;
+}
+
+
+2.
+//Small.cpp
+#include<iostream>
+#include<winsock2.h>
+#include<thread>
+#include<ws2tcpip.h>
+#include"Small.h"
+#pragma comment(lib,"ws2_32.lib")
+using namespace std;
+
+
+Client::Client(char ip[16], int host) {
+	for (int i = 0; ; i++) {
+		if (ip[i] != 0) {
+			AddrString[i] = ip[i];
+		}
+		else {
+			AddrString[i] = '\0';
+			break;
+		}
+	}
+	hostshort = host;
+}
+Client::~Client() {
+	closesocket(c_server);
+	WSACleanup();
+}
+
+int Client::Fa() {
+	while (1) {
+		char send_buf[100];
+		cin >> send_buf;
+
+		int send_len = send(c_server, send_buf, 100, 0);
+		if (send_len < 0) {
+			cout << "发送失败" << endl;
+			return 0;
+		}
+	}
+}
+
+int Client::Shou() {
+	while (1) {
+		char recv_buf[100];
+		int recv_len = recv(c_server, recv_buf, 100, 0);
+
+		if (recv_len < 0) {
+			cout << "接受失败" << endl;
+			return 0;
+		}
+		else {
+			if (recv_len < 100)
+				recv_buf[recv_len] = '\0';
+			cout << recv_buf << endl;
+		}
+	}
+}
+
+void Client::Socket() {
+	server_addr.sin_family = AF_INET;
+	inet_pton(AF_INET, AddrString, &server_addr.sin_addr);
+	server_addr.sin_port = htons(hostshort);
+	//创建套接字
+	c_server = socket(AF_INET, SOCK_STREAM, 0);
+	if (connect(c_server, (SOCKADDR*)&server_addr, sizeof(SOCKADDR)) == SOCKET_ERROR) {
+		cout << "服务器连接失败" << endl;
+		WSACleanup();
+	}
+	else {
+		cout << "服务器连接成功" << endl;
+	}
+}
+
+void Client::Wsadata() {
+	WORD w_req = MAKEWORD(2, 2);//版本号
+	WSADATA wsadata;
+	int err = WSAStartup(w_req, &wsadata);
+	if (err != 0) {
+		cout << "初始化套接字库失败" << endl;
+	}
+	if (LOBYTE(wsadata.wVersion) != 2 || HIBYTE(wsadata.wHighVersion) != 2) {
+		cout << "套接字库版本号不符" << endl;
+		WSACleanup();
+	}
+}
+
+void Client::Start() {
+	Wsadata();
+	Socket();
+
+	thread x1(&Client::Shou, this), x2(&Client::Fa, this);
+
+	x1.detach();
+	x2.detach();
+
+	while (1) {}
+}
+
+
+3.
+//Small.h
+#pragma once
+#ifndef SMALL
+#define SMALL
+
+#include<winsock2.h>
+
+class Client {
+private:
+	SOCKET c_server;
+	SOCKADDR_IN server_addr;
+
+	char AddrString[16];
+	int hostshort;
+
+public:
+	Client(char ip[16],int host);
+	~Client();
+	void Wsadata();
+	int Fa();
+	int Shou();
+	void Socket();
+	void Start();
+};
+
+#endif
