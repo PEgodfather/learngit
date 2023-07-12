@@ -44,3 +44,4 @@ git remote -v 查看远程仓库和它的名字。
 添加并提交：
 git add .
 git commit -m “我修改了”
+git push
