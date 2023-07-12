@@ -41,7 +41,7 @@ git remote：
 git remote -v #查看远程仓库和它的名字。
 
 git branch #查看分支列表。
-git branch 分支名字
+git branch 分支名字 #添加分支
 
 git checkout 分支名字 #恢复旧分支或者切换到一个已经存在的分支。
 git checkout -b 分支名字 版本号 #恢复分支
