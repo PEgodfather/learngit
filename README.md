@@ -43,7 +43,9 @@ git remote -v #查看远程仓库和它的名字。
 git branch #查看分支列表。
 git branch 分支名字
 
-git checkout 分支名字 #创建新分支或者切换到一个已经存在的分支。
+git checkout 分支名字 #恢复旧分支或者切换到一个已经存在的分支。
+git checkout -b 分支名字 版本号 #恢复分支
+
 git switch 分支名字 #切换分支。（推荐使用这个）
 
 git merge 想要合并的分支的名字 #合并分支前，你需要先回到主分支，它会把你想要合并的分支加到当前分支上。
