@@ -37,6 +37,8 @@ git push -u 远程仓库名字 分支（比如main）
 git pull：
 git pull 远程仓库名字 分支（比如main）
 
+git pull 远程仓库名字 分支  --allow-unrelated-histories 强制拉取时合并无关的历史记录，也就是我们在拉取文件修改时，其他用户提交了新的文件，此时如果我们提交就会成为无关的历史记录，所以需要重新拉取，再提交，在拉取时会出现错误，此时使用此参数可以解决。如果无法解决，就把本地的remote删除，重新git remote add添加远程仓库。
+
 git remote：
 git remote -v #查看远程仓库和它的名字。
 
